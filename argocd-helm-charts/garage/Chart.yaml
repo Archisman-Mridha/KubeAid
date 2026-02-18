@@ -1,0 +1,7 @@
+apiVersion: v2
+name: garage
+version: 1.0.0
+dependencies:
+  - name: garage
+    version: 0.2.1
+    repository: https://datahub-local.github.io/garage-helm
