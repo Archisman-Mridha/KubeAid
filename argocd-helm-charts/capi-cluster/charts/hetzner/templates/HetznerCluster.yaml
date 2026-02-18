@@ -4,6 +4,7 @@ metadata:
   name: {{ .Values.global.clusterName }}
   labels:
     cluster.x-k8s.io/name: {{ .Values.global.clusterName }}
+
 spec:
   controlPlaneEndpoint:
     host: {{ (.Values.controlPlane.bareMetal).endpoint.host | default "" }}
@@ -21,8 +22,10 @@ spec:
   {{- end }}
 
   hcloudNetwork:
-    enabled: {{ .Values.hcloud.disablePublicIPs }}
+    enabled: {{ .Values.hcloud.enableVSwitchIntegration }}
     networkZone: {{ .Values.hcloud.zone }}
+    cidrBlock: "10.0.0.0/16"
+    subnetCidrBlock: "10.0.0.0/24"
 
 {{- end }}
 
