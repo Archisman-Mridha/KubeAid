@@ -22,7 +22,7 @@ spec:
   {{- end }}
 
   hcloudNetwork:
-    enabled: {{ .Values.hcloud.enableVSwitchIntegration }}
+    enabled: true
     networkZone: {{ .Values.hcloud.zone }}
     cidrBlock: "10.0.0.0/16"
     subnetCidrBlock: "10.0.0.0/24"
