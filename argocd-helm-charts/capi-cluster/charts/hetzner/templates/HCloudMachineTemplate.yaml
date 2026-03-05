@@ -14,7 +14,8 @@ spec:
       placementGroupName: control-plane
       type: {{ .Values.controlPlane.hcloud.machineType }}
       publicNetwork:
-        enableIPv4: true
+        enableIPv4: false
+        enableIPv6: false
 {{- end }}
 
 {{/* Handling node-groups in HCloud. */}}
@@ -35,6 +36,7 @@ spec:
       placementGroupName: {{ $nodeGroup.name }}
       type: {{ $nodeGroup.machineType }}
       publicNetwork:
-        enableIPv4: true
+        enableIPv4: false
+        enableIPv6: false
 {{- end }}
 {{- end }}
