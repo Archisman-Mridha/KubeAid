@@ -105,6 +105,10 @@ spec:
             tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256
       preKubeadmCommands:
       - set -x
+
+      - bash -c 'for i in {1..30}; do ip route add default via 10.0.0.1 && break; sleep 10; done'
+      - echo "nameserver 1.1.1.1" | tee -a /etc/resolv.conf
+
       - grep VERSION= /etc/os-release; uname -a
       - export CONTAINERD=1.7.25
       - export RUNC=1.2.3

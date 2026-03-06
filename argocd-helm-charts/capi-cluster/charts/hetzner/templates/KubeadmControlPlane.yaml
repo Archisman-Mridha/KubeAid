@@ -248,6 +248,9 @@ spec:
     preKubeadmCommands:
       - set -x
 
+      - bash -c 'for i in {1..30}; do ip route add default via 10.0.0.1 && break; sleep 10; done'
+      - echo "nameserver 1.1.1.1" | tee -a /etc/resolv.conf
+
       {{/* Give highest priority to the Network Card / Connection entry in the boot order.
            Otherwise, we cannot boot the servers into rescue mode, and need to reach out to the
            Hetzner support team. */}}
