@@ -7,7 +7,13 @@ metadata:
 
 spec:
   controlPlaneEndpoint:
+    {{- if eq .Values.mode "hybrid" }}
+    {{/* In case of a hybrid cluster, we create the Hetzner Network and the LB for the
+         Kubernetes API server beforehand. And the LB always has private IP 10.0.0.2. */}}
+    host: "10.0.0.2"
+    {{- else }}
     host: {{ (.Values.controlPlane.bareMetal).endpoint.host | default "" }}
+    {{- end }}
     port: 6443
 
   controlPlaneRegions: {{ toYaml .Values.controlPlane.regions | nindent 4 }}
@@ -24,8 +30,8 @@ spec:
   hcloudNetwork:
     enabled: true
     networkZone: {{ .Values.hcloud.zone }}
-    cidrBlock: "10.0.0.0/16"
-    subnetCidrBlock: "10.0.0.0/24"
+    cidrBlock: {{ .Values.hcloud.cidrBlock }}
+    subnetCidrBlock: {{ .Values.hcloud.subnetCidrBlock }}
 
 {{- end }}
 

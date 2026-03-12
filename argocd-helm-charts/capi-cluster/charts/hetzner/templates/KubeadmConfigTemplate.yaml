@@ -11,6 +11,18 @@ spec:
     spec:
       files:
         - content: |
+            for i in {1..30}; do
+              ip route add default via 10.0.0.1 && break
+              sleep 10
+            done
+
+            echo "nameserver 1.1.1.1" | tee -a /etc/resolv.conf
+            resolvectl dns enp7s0 1.1.1.1
+          owner: "root:root"
+          path: /connect-nat-gateway.sh
+          permissions: "0744"
+
+        - content: |
             net.ipv4.conf.lxc*.rp_filter = 0
           owner: root:root
           path: /etc/sysctl.d/99-cilium.conf
@@ -106,8 +118,7 @@ spec:
       preKubeadmCommands:
       - set -x
 
-      - bash -c 'for i in {1..30}; do ip route add default via 10.0.0.1 && break; sleep 10; done'
-      - echo "nameserver 1.1.1.1" | tee -a /etc/resolv.conf
+      - chmod +x /connect-nat-gateway.sh && /connect-nat-gateway.sh
 
       - grep VERSION= /etc/os-release; uname -a
       - export CONTAINERD=1.7.25

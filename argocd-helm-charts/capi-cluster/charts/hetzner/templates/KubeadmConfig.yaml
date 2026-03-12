@@ -103,35 +103,47 @@ spec:
         rotate-server-certificates: "true"
         tls-cipher-suites: TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_256_GCM_SHA384,TLS_RSA_WITH_AES_128_GCM_SHA256
   preKubeadmCommands:
-  - set -x
+    - set -x
 
-  {{/* Give highest priority to the Network Card / Connection entry in the boot order.
-        Otherwise, we cannot boot the servers into rescue mode, and need to reach out to the
-        Hetzner support team. */}}
-  - |
-    NETBOOT=$(efibootmgr -v \
-      | grep -E "Network (Card|Connection)" \
-      | sed 's/Boot\([0-9A-F]*\).*/\1/' \
-      | head -n1)
-    CURRENT_ORDER=$(efibootmgr | grep "BootOrder:" | cut -d' ' -f2)
-    NEW_ORDER=$(echo "$CURRENT_ORDER" | sed "s/$NETBOOT,\?//g" | sed "s/^/$NETBOOT,/" | sed 's/,$//')
-    efibootmgr -o $NEW_ORDER
+    {{/* Give highest priority to the Network Card / Connection entry in the boot order.
+          Otherwise, we cannot boot the servers into rescue mode, and need to reach out to the
+          Hetzner support team. */}}
+    - |
+      NETBOOT=$(efibootmgr -v \
+        | grep -E "Network (Card|Connection)" \
+        | sed 's/Boot\([0-9A-F]*\).*/\1/' \
+        | head -n1)
+      CURRENT_ORDER=$(efibootmgr | grep "BootOrder:" | cut -d' ' -f2)
+      NEW_ORDER=$(echo "$CURRENT_ORDER" | sed "s/$NETBOOT,\?//g" | sed "s/^/$NETBOOT,/" | sed 's/,$//')
+      efibootmgr -o $NEW_ORDER
 
-  - bash -c 'for i in {1..30}; do ip route add default via 10.0.0.1 && break; sleep 10; done'
-  - echo "nameserver 1.1.1.1" | tee -a /etc/resolv.conf
+    - export NETWORK_INTERFACE=$(ip route get 8.8.8.8 | awk '{print $5; exit}')
 
-  {{/* Attach the Hetzner Bare Metal server to the Hetzner Network using VSwitch. */}}
-  - |
-    NETWORK_INTERFACE=$(ip route get 8.8.8.8 | awk '{print $5; exit}')
+    {{/* Attach the Hetzner Bare Metal server to the Hetzner Network using VSwitch. */}}
+    - |
+      ip link add link $NETWORK_INTERFACE name $NETWORK_INTERFACE.4000 type vlan id {{ $.Values.vswitch.vlanID }}
+      ip link set $NETWORK_INTERFACE.4000 mtu 1400
+      ip link set dev $NETWORK_INTERFACE.4000 up
 
-    ip link add link $(NETWORK_INTERFACE) name $(NETWORK_INTERFACE).4000 type vlan id {{ $.Values.vswitch.vlanID }}
-    ip link set $(NETWORK_INTERFACE).4000 mtu 1400
-    ip link set dev $(NETWORK_INTERFACE).4000 up
+      ip addr add {{ $host.privateIP }}/24 dev $NETWORK_INTERFACE.4000
+      ip route add 10.0.0.0/16 via 10.0.1.1
 
-    ip addr add {{ $host.privateIP }}/24 dev $(NETWORK_INTERFACE).4000
-    ip route add 10.0.0.0/16 via 10.0.1.1
+    {{/* We can't disable the public IP, since CAPH periodically tries to SSH into the node using
+         its public IP. If it's not able to SSH, it'll think that the node is down, and will keep
+         restarting it. */}}
+    # - |
+    #   export PUBLIC_IP=$(ip addr show $NETWORK_INTERFACE | awk '/inet / {print $2; exit}')
+    #   ip addr del $PUBLIC_IP dev $NETWORK_INTERFACE
+    #
+    #   export PUBLIC_IPV6=$(ip addr show $NETWORK_INTERFACE | awk '/inet6 / && /global/ {print $2; exit}')
+    #   ip addr del $PUBLIC_IPV6 dev $NETWORK_INTERFACE
 
-  {{/*
+    {{/* Route egress traffic to the internet, to the NAT gateway. */}}
+    - |
+      ip route add default via 10.0.1.1
+      resolvectl dns $NETWORK_INTERFACE.4000 1.1.1.1
+
+    {{/*
       User provided commands used to setup the disk layout.
       We recommend the following :
           

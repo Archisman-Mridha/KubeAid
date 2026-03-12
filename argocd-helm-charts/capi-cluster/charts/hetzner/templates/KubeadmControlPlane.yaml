@@ -68,6 +68,19 @@ spec:
           profiling: "false"
           secure-port: "10259"
     files:
+
+    - content: |
+        for i in {1..30}; do
+          ip route add default via 10.0.0.1 && break
+          sleep 10
+        done
+
+        echo "nameserver 1.1.1.1" | tee -a /etc/resolv.conf
+        resolvectl dns enp7s0 1.1.1.1
+      owner: "root:root"
+      path: /connect-nat-gateway.sh
+      permissions: "0744"
+
     {{- if eq .Values.mode "bare-metal" }}
     - content: |
         [Unit]
@@ -248,8 +261,7 @@ spec:
     preKubeadmCommands:
       - set -x
 
-      - bash -c 'for i in {1..30}; do ip route add default via 10.0.0.1 && break; sleep 10; done'
-      - echo "nameserver 1.1.1.1" | tee -a /etc/resolv.conf
+      - chmod +x /connect-nat-gateway.sh && /connect-nat-gateway.sh
 
       {{/* Give highest priority to the Network Card / Connection entry in the boot order.
            Otherwise, we cannot boot the servers into rescue mode, and need to reach out to the
@@ -293,6 +305,7 @@ spec:
       - ARCH="$(dpkg --print-architecture)"
       - localectl set-locale LANG=en_US.UTF-8
       - localectl set-locale LANGUAGE=en_US.UTF-8
+      - apt-get update -y
       - apt-get -y install at jq unzip wget logrotate apt-transport-https
 
       {{- if eq .Values.mode "bare-metal" }}
@@ -405,6 +418,7 @@ spec:
       # Install Hetzner Bare Metal Cloud Controller Manager.
       - |
         helm template ccm-hetzner kubeaid/argocd-helm-charts/ccm-hetzner \
+          --set ccm-hetzner.secret.name=cloud-credentials \
           --values kubeaid/argocd-helm-charts/ccm-hetzner/values.yaml \
           --namespace kube-system | kubectl apply -f -
       {{- end }}
