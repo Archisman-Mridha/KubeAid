@@ -121,7 +121,7 @@ spec:
 
     {{/* Attach the Hetzner Bare Metal server to the Hetzner Network using VSwitch. */}}
     - |
-      ip link add link $NETWORK_INTERFACE name $NETWORK_INTERFACE.4000 type vlan id {{ $.Values.vswitch.vlanID }}
+      ip link add link $NETWORK_INTERFACE name $NETWORK_INTERFACE.4000 type vlan id {{ $.Values.bareMetal.vSwitch.vlanID }}
       ip link set $NETWORK_INTERFACE.4000 mtu 1400
       ip link set dev $NETWORK_INTERFACE.4000 up
 
